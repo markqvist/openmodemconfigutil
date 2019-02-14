@@ -440,7 +440,7 @@ def start_server():
 			httpd = ThreadedHTTPServer(server_address, appRequestHandler)
 			threading.Thread(target=httpd.serve_forever).start()
 			print("Server running on port "+str(port))
-			retval = webview.create_window('App Name', 'http://localhost:'+str(port)+'/', width=575, height=600)
+			retval = webview.create_window('OpenModem Configuration', 'http://localhost:'+str(port)+'/', width=575, height=600)
 			if retval == None:
 				os._exit(0)
 
