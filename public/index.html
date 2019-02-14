@@ -1,0 +1,392 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Python App Test</title>
+
+  <link rel="stylesheet" type="text/css" href="./semantic/semantic.min.css">
+  <link rel="stylesheet" type="text/css" href="./semantic/range.css">
+  <link rel="stylesheet" type="text/css" href="./fontawesome/css/all.css">
+  <script type='text/javascript' src='./jquery.js'></script>
+  <script type='text/javascript' src="./semantic/semantic.min.js"></script>
+  <script type='text/javascript' src="./semantic/range.js"></script>
+  <script type='text/javascript' src='./raphael.min.js'></script>
+
+  <link rel='stylesheet' href='./style.css'/>
+  <script type='text/javascript' src='./main.js'></script>
+</head>
+
+<body>
+	<div class="ui styled fullwidth accordion">
+	  <div class="title active">
+	    <i class="dropdown icon"></i>
+	    <i class="fas fa-plug"></i>&nbsp;&nbsp;Connection
+	    <span class="rightfloated">
+	    	<i class="fas fa-circle disconnected"></i>
+	    </span>
+	  </div>
+	  <div class="content active">
+	    <p class="transition visible" style="display: block !important;">
+	    	<div class="ui grid">
+	    		<!-- Serial Port selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      Port
+				    </div>
+	    		</div>
+
+	    		<div class="eight wide column">
+	    			<select class="ui fullwidth dropdown">
+	    			  <option value="0">tty.USB0</option>
+	    			  <option value="1">tty.USB1</option>
+	    			</select>
+	    		</div>
+	    		
+	    		<!-- Serial Baudrate selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      Serial Baud Rate
+				    </div>
+	    		</div>
+
+	    		<div class="eight wide column">
+	    			<select class="ui fullwidth dropdown">
+	    			  <option value="1200">1200</option>
+	    			  <option value="2400">2400</option>
+	    			  <option value="9600">9600</option>
+	    			  <option value="115200" selected>115200</option>
+	    			  <option value="230400">230400</option>
+	    			</select>
+	    		</div>
+
+	    		<div class="sixteen wide column">
+	    			<div class="ui teal fullwidth button" tabindex="0">
+	    			  Connect
+	    			</div>
+	    		</div>
+	    	</div>
+	    </p>
+	  </div>
+
+	  <div class="title">
+	    <i class="dropdown icon"></i>
+	    <i class="fas fa-cog"></i>&nbsp;&nbsp;Modem Settings
+	  </div>
+	  <div class="content">
+	    <p class="transition hidden">
+	    	<div class="ui grid">
+		    	<!-- Modem mode selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      Mode
+				    </div>
+	    		</div>
+
+	    		<div class="eight wide column">
+	    			<select class="ui fullwidth dropdown">
+	    			  <option value="AFSK300">AFSK300</option>
+	    			  <option value="AFSK1200" selected>AFSK1200</option>
+	    			  <option value="AFSK2400">AFSK2400</option>
+	    			</select>
+	    		</div>
+
+	    		<!-- Preamble selection -->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      Preamble
+				    </div>
+	    		</div>
+
+	    		<div class="eight wide column">
+	    			<div class="ui right labeled fullwidth input">
+	    			  <input type="text" placeholder="">
+	    			  <div class="ui basic label">
+	    			    ms
+	    			  </div>
+	    			</div>
+	    		</div>
+
+	    		<!-- Tail selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      Tail
+				    </div>
+	    		</div>
+
+	    		<div class="eight wide column">
+	    			<div class="ui right labeled fullwidth input">
+	    			  <input type="text" placeholder="">
+	    			  <div class="ui basic label">
+	    			    ms
+	    			  </div>
+	    			</div>
+	    		</div>
+
+	    		<!-- Slot Time selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      CSMA Slot Time
+				    </div>
+	    		</div>
+
+	    		<div class="eight wide column">
+	    			<div class="ui right labeled fullwidth input">
+	    			  <input type="text" placeholder="">
+	    			  <div class="ui basic label">
+	    			    ms
+	    			  </div>
+	    			</div>
+	    		</div>
+
+	    		<!-- P selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      CSMA Persistence
+				    </div>
+	    		</div>	
+
+	    		<div class="two wide column norightpadding">
+	    			<div class="ui fullwidth input">
+	    			  <input type="text" placeholder="">
+	    			</div>
+	    		</div>
+
+	    		<div class="six wide column noleftpadding">
+	    			<div class="ui range" id="p-selection"></div>
+	    		</div>
+
+	    		<!-- LED Intensity selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      LED Intensity
+				    </div>
+	    		</div>	
+
+	    		<div class="eight wide column">
+	    			<div class="ui range" id="led-selection"></div>
+	    		</div>
+
+	    		<!-- GPS mode selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      GPS Mode
+				    </div>
+	    		</div>
+
+	    		<div class="eight wide column">
+	    			<select class="ui fullwidth dropdown">
+	    			  <option value="autodetect" selected>Autodetect</option>
+	    			  <option value="disabled">Disabled</option>
+	    			  <option value="required">Required</option>
+	    			</select>
+	    		</div>
+
+	    		<!-- GPS mode selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      Bluetooth LE Mode
+				    </div>
+	    		</div>
+
+	    		<div class="eight wide column">
+	    			<select class="ui fullwidth dropdown">
+	    			  <option value="autodetect" selected>Autodetect</option>
+	    			  <option value="disabled">Disabled</option>
+	    			  <option value="required">Required</option>
+	    			</select>
+	    		</div>
+
+	    		<!-- Serial Baudrate mode selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      Serial Baudrate
+				    </div>
+	    		</div>
+
+	    		<div class="eight wide column">
+	    			<select class="ui fullwidth dropdown">
+	    			  <option value="1200">1200</option>
+	    			  <option value="2400">2400</option>
+	    			  <option value="9600">9600</option>
+	    			  <option value="14400">14400</option>
+	    			  <option value="19200">19200</option>
+	    			  <option value="28800">28800</option>
+	    			  <option value="38400">38400</option>
+	    			  <option value="57600">57600</option>
+	    			  <option value="76800">76800</option>
+	    			  <option value="115200" selected>115200</option>
+	    			  <option value="230400">230400</option>
+	    			</select>
+	    		</div>
+
+	    		<!-- Pass All selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      Pass All Packets
+				    </div>
+	    		</div>	
+
+	    		<div class="eight wide column">
+	    			<div class="ui rightfloated toggle checkbox">
+	    			  <input type="checkbox" name="passall">
+	    			</div>
+	    		</div>
+
+	    		<!-- Log to SD selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      Log Packets to SD
+				    </div>
+	    		</div>	
+
+	    		<div class="eight wide column">
+	    			<div class="ui rightfloated toggle checkbox">
+	    			  <input type="checkbox" name="logtosd">
+	    			</div>
+	    		</div>
+
+	    		<div class="sixteen wide column">
+	    			<div class="ui teal fullwidth button" tabindex="0">
+	    			  Apply Modem Configuration
+	    			</div>
+	    		</div>
+    		</div>
+	    </p>
+	  </div>
+
+	  <div class="title">
+	    <i class="dropdown icon"></i>
+	    <i class="fas fa-volume"></i>&nbsp;&nbsp;Audio
+	  </div>
+	  <div class="content">
+	    <p class="transition hidden">
+	    	
+	    	<div class="ui grid">
+	    		<!-- Input Gain selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      Input Gain
+				    </div>
+	    		</div>	
+
+	    		<div class="eight wide column">
+	    			<div class="ui range" id="ingain-selection"></div>
+	    		</div>
+
+	    		<!-- Output Gain selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      Output Gain
+				    </div>
+	    		</div>	
+
+	    		<div class="eight wide column">
+	    			<div class="ui range" id="outgain-selection"></div>
+	    		</div>
+
+	    		<div class="sixteen wide column">
+	    			<div id="inputgraph">
+	    			</div>
+	    		</div>
+
+	    		<div class="sixteen wide column">
+	    			<div class="ui teal fullwidth button" tabindex="0">
+	    			  Apply Audio Configuration
+	    			</div>
+	    		</div>
+	    	</div>
+
+	    </p>
+	    
+	  </div>
+
+	  <div class="title">
+	    <i class="dropdown icon"></i>
+	    <i class="fas fa-lock-alt"></i>&nbsp;&nbsp;Cryptography
+	  </div>
+	  <div class="content">
+	    <p class="transition hidden">
+	    	<div class="ui grid">
+	    		<!-- SD selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      OpenModem SD Card
+				    </div>
+	    		</div>
+
+	    		<div class="eight wide column">
+	    			<select class="ui fullwidth dropdown">
+	    			  <option value="none" selected>None</option>
+	    			  <option value="0">SD Card 1</option>
+	    			  <option value="1">SD Card 2</option>
+	    			</select>
+	    		</div>
+
+	    		<!-- Encryption enabled selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      AES-128 Encryption
+				    </div>
+	    		</div>	
+
+	    		<div class="eight wide column">
+	    			<div class="ui rightfloated toggle checkbox">
+	    			  <input type="checkbox" name="aesenable">
+	    			</div>
+	    		</div>
+
+	    		<!-- Key selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      Private Key
+				    </div>
+	    		</div>	
+
+	    		<div class="four wide column">
+	    			<div class="ui teal fullwidth button" tabindex="0">
+	    			  Generate
+	    			</div>
+	    		</div>
+
+	    		<div class="four wide column">
+	    			<div class="ui teal fullwidth button" tabindex="0">
+	    			  Load
+	    			</div>
+	    		</div>
+
+	    		<!-- Entropy selection-->
+	    		<div class="eight wide column">
+	    			<div class="ui fullwidth label">
+				      Entropy Source
+				    </div>
+	    		</div>	
+
+	    		<div class="eight wide column">
+	    			<div class="ui teal fullwidth button" tabindex="0">
+	    			  Install
+	    			</div>
+	    		</div>
+
+	    	</div>
+	    </p>
+	    
+	  </div>
+
+	  <div class="title">
+	    <i class="dropdown icon"></i>
+	    <i class="fas fa-info-circle"></i>&nbsp;&nbsp;About
+	  </div>
+	  <div class="content">
+	    <p class="transition hidden">Lorem Ipsum</p>
+	    	<ul>
+	    		<li>semantic-ui-range</li>
+	    		<li>https://pywebview.flowrl.com</li>
+	    		<li>SemanticUI</li>
+	    		<li>FontAwesome</li>
+	    		<li>Raphaël</li>
+	    	</ul>
+	  </div>
+	</div>
+</body>
+
+</html>
