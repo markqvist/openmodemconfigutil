@@ -60,8 +60,6 @@ def get_port():
 	return random.randrange(40000,49999,1)
 
 def start_server():
-	cwd = os.getcwd()
-	print("CWD is: "+str(cwd))
 	retries = 0
 	server_started = False
 
@@ -84,6 +82,8 @@ def start_server():
 
 
 def main():
+	include_path = os.path.dirname(os.path.realpath(sys.argv[0]))
+	os.chdir(include_path)
 	start_server()
 
 if __name__ == "__main__":
