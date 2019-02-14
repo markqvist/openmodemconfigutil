@@ -17,12 +17,16 @@
 </head>
 
 <body>
-	<div class="ui styled fullwidth accordion">
+	<div class="ui dimmer" id="ind_connecting">
+	  <div class="ui loader"></div>
+	</div>
+	<div class="ui styled fullwidth accordion" id="configutil">
 	  <div class="title active">
 	    <i class="dropdown icon"></i>
 	    <i class="fas fa-plug"></i>&nbsp;&nbsp;Connection
 	    <span class="rightfloated">
-	    	<i class="fas fa-circle disconnected"></i>
+	    	<i class="fas fa-circle disconnected" id="ind_disconnected"></i>
+	    	<i class="fas fa-circle connected" id="ind_connected"></i>
 	    </span>
 	  </div>
 	  <div class="content active">
@@ -36,9 +40,7 @@
 	    		</div>
 
 	    		<div class="eight wide column">
-	    			<select class="ui fullwidth dropdown">
-	    			  <option value="0">tty.USB0</option>
-	    			  <option value="1">tty.USB1</option>
+	    			<select class="ui fullwidth dropdown" id="serialports">
 	    			</select>
 	    		</div>
 	    		
@@ -50,18 +52,27 @@
 	    		</div>
 
 	    		<div class="eight wide column">
-	    			<select class="ui fullwidth dropdown">
+	    			<select class="ui fullwidth dropdown" id="connectbaudrate">
 	    			  <option value="1200">1200</option>
 	    			  <option value="2400">2400</option>
 	    			  <option value="9600">9600</option>
+	    			  <option value="14400">14400</option>
+	    			  <option value="19200">19200</option>
+	    			  <option value="28800">28800</option>
+	    			  <option value="38400">38400</option>
+	    			  <option value="57600">57600</option>
+	    			  <option value="76800">76800</option>
 	    			  <option value="115200" selected>115200</option>
 	    			  <option value="230400">230400</option>
 	    			</select>
 	    		</div>
 
 	    		<div class="sixteen wide column">
-	    			<div class="ui teal fullwidth button" tabindex="0">
+	    			<div class="ui teal fullwidth button" tabindex="0" id="connectbutton">
 	    			  Connect
+	    			</div>
+	    			<div class="ui red fullwidth button" tabindex="0" id="disconnectbutton">
+	    			  Disconnect
 	    			</div>
 	    		</div>
 	    	</div>
@@ -247,7 +258,7 @@
 
 	    		<div class="sixteen wide column">
 	    			<div class="ui teal fullwidth button" tabindex="0">
-	    			  Apply Modem Configuration
+	    			  Save Modem Configuration
 	    			</div>
 	    		</div>
     		</div>
