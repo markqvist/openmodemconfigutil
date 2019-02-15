@@ -54,3 +54,21 @@ i.fa-circle.connected {
 	border: 1px solid #ddd;
     border-radius: 3px;
 }
+
+.licenses li a {
+	color: #333;
+}
+
+.licenses li .license a {
+	color: #555;
+	font-size: 0.75em;
+}
+
+.inputfile {
+	width: 0.1px;
+	height: 0.1px;
+	opacity: 0;
+	overflow: hidden;
+	position: absolute;
+	z-index: -1;
+}

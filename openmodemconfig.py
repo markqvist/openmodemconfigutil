@@ -8,13 +8,17 @@ from time import sleep
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from SocketServer import ThreadingMixIn
 from urlparse import urlparse, parse_qs
+import base64
+import psutil
 import threading
 import webview
 import random
 import os
 import sys
+import md5
 
 portlist = []
+volumelist = []
 kiss_interface = None
 
 class RNS():
@@ -50,24 +54,59 @@ class Interface:
 		pass
 
 class KISS():
-	FEND			= chr(0xC0)
-	FESC			= chr(0xDB)
-	TFEND			= chr(0xDC)
-	TFESC			= chr(0xDD)
-	CMD_UNKNOWN		= chr(0xFE)
-	CMD_DATA		= chr(0x00)
-	CMD_TXDELAY		= chr(0x01)
-	CMD_P			= chr(0x02)
-	CMD_SLOTTIME	= chr(0x03)
-	CMD_TXTAIL		= chr(0x04)
-	CMD_FULLDUPLEX	= chr(0x05)
-	CMD_SETHARDWARE	= chr(0x06)
-	CMD_READY       = chr(0x0F)
-	CMD_AUDIO_PEAK  = chr(0x12)
-	CMD_OUTPUT_GAIN = chr(0x09)
-	CMD_INPUT_GAIN  = chr(0x0A)
-	CMD_EN_DIAGS    = chr(0x13)
-	CMD_RETURN		= chr(0xFF)
+	FEND						= chr(0xC0)
+	FESC						= chr(0xDB)
+	TFEND						= chr(0xDC)
+	TFESC						= chr(0xDD)
+	CMD_UNKNOWN					= chr(0xFE)
+	CMD_DATA					= chr(0x00)
+	CMD_TXDELAY					= chr(0x01)
+	CMD_P						= chr(0x02)
+	CMD_SLOTTIME				= chr(0x03)
+	CMD_TXTAIL					= chr(0x04)
+	CMD_FULLDUPLEX				= chr(0x05)
+	CMD_SETHARDWARE				= chr(0x06)
+	CMD_SAVE_CONFIG				= chr(0x07)
+	CMD_READY       			= chr(0x0F)
+	CMD_AUDIO_PEAK  			= chr(0x12)
+	CMD_OUTPUT_GAIN 			= chr(0x09)
+	CMD_INPUT_GAIN  			= chr(0x0A)
+	CMD_PASSALL 				= chr(0x0B)
+	CMD_LOG_PACKETS 			= chr(0x0C)
+	CMD_GPS_MODE				= chr(0x0D)
+	CMD_BT_MODE					= chr(0x0E)
+	CMD_SERIAL_BAUDRATE			= chr(0x10)
+	CMD_EN_DIAGS    			= chr(0x13)
+	CMD_PRINT_CONFIG			= chr(0xF0)
+	CMD_LED_INTENSITY			= chr(0x08)
+	CMD_RETURN					= chr(0xFF)
+
+	ADDR_E_MAJ_VERSION			= chr(0x00)
+	ADDR_E_MIN_VERSION			= chr(0x01)
+	ADDR_E_CONF_VERSION			= chr(0x02)
+	ADDR_E_P					= chr(0x03)
+	ADDR_E_SLOTTIME				= chr(0x04)
+	ADDR_E_PREAMBLE				= chr(0x05)
+	ADDR_E_TAIL					= chr(0x06)
+	ADDR_E_LED_INTENSITY		= chr(0x07)
+	ADDR_E_OUTPUT_GAIN			= chr(0x08)
+	ADDR_E_INPUT_GAIN			= chr(0x09)
+	ADDR_E_PASSALL				= chr(0x0A)
+	ADDR_E_LOG_PACKETS			= chr(0x0B)
+	ADDR_E_CRYPTO_LOCK			= chr(0x0C)
+	ADDR_E_GPS_MODE				= chr(0x0D)
+	ADDR_E_BLUETOOTH_MODE		= chr(0x0E)
+	ADDR_E_SERIAL_BAUDRATE		= chr(0x0F)
+	ADDR_E_CHECKSUM				= chr(0x10)
+	ADDR_E_END					= chr(0x20)
+
+	CONFIG_GPS_OFF				= chr(0x00)
+	CONFIG_GPS_AUTODETECT		= chr(0x01)
+	CONFIG_GPS_REQUIRED			= chr(0x02)
+
+	CONFIG_BLUETOOTH_OFF		= chr(0x00)
+	CONFIG_BLUETOOTH_AUTODETECT	= chr(0x01)
+	CONFIG_BLUETOOTH_REQUIRED	= chr(0x02)
 
 	@staticmethod
 	def escape(data):
@@ -109,6 +148,22 @@ class KISSInterface(Interface):
 		self.persistence = persistence if persistence != None else 64;
 		self.slottime    = slottime if slottime != None else 20;
 
+		self.config_p			= None
+		self.config_slottime	= None
+		self.config_preamble	= None
+		self.config_tail		= None
+		self.config_led_intensity	= None
+		self.config_output_gain		= None
+		self.config_input_gain		= None
+		self.config_passall			= None
+		self.config_log_packets		= None
+		self.config_crypto_lock		= None
+		self.config_gps_mode		= None
+		self.config_bluetooth_mode	= None
+		self.config_serial_baudrate = None
+		self.config_valid			= False
+
+
 		if parity.lower() == "e" or parity.lower() == "even":
 			self.parity = serial.PARITY_EVEN
 
@@ -136,7 +191,7 @@ class KISSInterface(Interface):
 
 		if self.serial.is_open:
 			# Allow time for interface to initialise before config
-			sleep(1.5)
+			sleep(2.2)
 			thread = threading.Thread(target=self.readLoop)
 			thread.setDaemon(True)
 			thread.start()
@@ -159,22 +214,21 @@ class KISSInterface(Interface):
 		self.audiopeak = peak_value[0]
 
 	def setPreamble(self, preamble):
-		preamble_ms = preamble
-		preamble = int(preamble_ms / 10)
+		#preamble_ms = preamble
+		#preamble = int(preamble_ms / 10)
 		if preamble < 0:
 			preamble = 0
 		if preamble > 255:
 			preamble = 255
 
-		RNS.log("Setting preamble to "+str(preamble)+" "+chr(preamble))
 		kiss_command = KISS.FEND+KISS.CMD_TXDELAY+chr(preamble)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
-			raise IOError("Could not configure KISS interface preamble to "+str(preamble_ms)+" (command value "+str(preamble)+")")
+			raise IOError("Could not configure KISS interface preamble to "+str(preamble)+" (command value "+str(preamble)+")")
 
 	def setTxTail(self, txtail):
-		txtail_ms = txtail
-		txtail = int(txtail_ms / 10)
+		#txtail_ms = txtail
+		#txtail = int(txtail_ms / 10)
 		if txtail < 0:
 			txtail = 0
 		if txtail > 255:
@@ -183,7 +237,7 @@ class KISSInterface(Interface):
 		kiss_command = KISS.FEND+KISS.CMD_TXTAIL+chr(txtail)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
-			raise IOError("Could not configure KISS interface TX tail to "+str(txtail_ms)+" (command value "+str(txtail)+")")
+			raise IOError("Could not configure KISS interface TX tail to "+str(txtail)+" (command value "+str(txtail)+")")
 
 	def setPersistence(self, persistence):
 		if persistence < 0:
@@ -197,8 +251,8 @@ class KISSInterface(Interface):
 			raise IOError("Could not configure KISS interface persistence to "+str(persistence))
 
 	def setSlotTime(self, slottime):
-		slottime_ms = slottime
-		slottime = int(slottime_ms / 10)
+		#slottime_ms = slottime
+		#slottime = int(slottime_ms / 10)
 		if slottime < 0:
 			slottime = 0
 		if slottime > 255:
@@ -207,7 +261,7 @@ class KISSInterface(Interface):
 		kiss_command = KISS.FEND+KISS.CMD_SLOTTIME+chr(slottime)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
-			raise IOError("Could not configure KISS interface slot time to "+str(slottime_ms)+" (command value "+str(slottime)+")")
+			raise IOError("Could not configure KISS interface slot time to "+str(slottime)+" (command value "+str(slottime)+")")
 
 	def setFlowControl(self, flow_control):
 		kiss_command = KISS.FEND+KISS.CMD_READY+chr(0x01)+KISS.FEND
@@ -241,11 +295,102 @@ class KISSInterface(Interface):
 			raise IOError("Could not configure KISS interface input gain to "+str(gain))
 
 
+	def setLEDIntensity(self, val):
+		if val < 0:
+			val = 0
+		if val > 255:
+			val = 255
+
+		kiss_command = KISS.FEND+KISS.CMD_LED_INTENSITY+chr(val)+KISS.FEND
+		written = self.serial.write(kiss_command)
+		if written != len(kiss_command):
+			raise IOError("Could not configure KISS interface LED intensity to "+str(val))
+
+
+	def setGPSMode(self, val):
+		if val < 0:
+			val = 0
+		if val > 2:
+			val = 2
+
+		kiss_command = KISS.FEND+KISS.CMD_GPS_MODE+chr(val)+KISS.FEND
+		written = self.serial.write(kiss_command)
+		if written != len(kiss_command):
+			raise IOError("Could not configure KISS interface GPS mode to "+str(val))
+
+	def setBluetoothMode(self, val):
+		if val < 0:
+			val = 0
+		if val > 2:
+			val = 2
+
+		kiss_command = KISS.FEND+KISS.CMD_BT_MODE+chr(val)+KISS.FEND
+		written = self.serial.write(kiss_command)
+		if written != len(kiss_command):
+			raise IOError("Could not configure KISS interface BT mode to "+str(val))
+
+	def setBaudrate(self, val):
+		if val < 1:
+			val = 1
+		if val > 12:
+			val = 12
+
+		kiss_command = KISS.FEND+KISS.CMD_SERIAL_BAUDRATE+chr(val)+KISS.FEND
+		written = self.serial.write(kiss_command)
+		if written != len(kiss_command):
+			raise IOError("Could not configure KISS interface baudrate to "+str(gain))
+
+	def setBaudrate(self, val):
+		if val < 1:
+			val = 1
+		if val > 12:
+			val = 12
+
+		kiss_command = KISS.FEND+KISS.CMD_SERIAL_BAUDRATE+chr(val)+KISS.FEND
+		written = self.serial.write(kiss_command)
+		if written != len(kiss_command):
+			raise IOError("Could not configure KISS interface baudrate to "+str(gain))
+
+	def setPassall(self, val):
+		if val < 0:
+			val = 0
+		if val > 1:
+			val = 1
+
+		kiss_command = KISS.FEND+KISS.CMD_PASSALL+chr(val)+KISS.FEND
+		written = self.serial.write(kiss_command)
+		if written != len(kiss_command):
+			raise IOError("Could not configure KISS interface passall to "+str(gain))
+
+	def setLogToSD(self, val):
+		if val < 0:
+			val = 0
+		if val > 1:
+			val = 1
+
+		kiss_command = KISS.FEND+KISS.CMD_LOG_PACKETS+chr(val)+KISS.FEND
+		written = self.serial.write(kiss_command)
+		if written != len(kiss_command):
+			raise IOError("Could not configure KISS interface logtosd to "+str(gain))
+
+
+	def saveConfig(self):
+		kiss_command = KISS.FEND+KISS.CMD_SAVE_CONFIG+chr(0x01)+KISS.FEND
+		written = self.serial.write(kiss_command)
+		if written != len(kiss_command):
+			raise IOError("Could not send save config command")
+
 	def enableDiagnostics(self):
 		kiss_command = KISS.FEND+KISS.CMD_EN_DIAGS+chr(0x01)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not enable KISS interface diagnostics")
+
+	def retrieveConfig(self):
+		kiss_command = KISS.FEND+KISS.CMD_PRINT_CONFIG+chr(0x01)+KISS.FEND
+		written = self.serial.write(kiss_command)
+		if written != len(kiss_command):
+			raise IOError("Could not ask for config data")
 
 	def disableDiagnostics(self):
 		kiss_command = KISS.FEND+KISS.CMD_EN_DIAGS+chr(0x00)+KISS.FEND
@@ -260,6 +405,34 @@ class KISSInterface(Interface):
 		self.has_decode = True
 		RNS.log("Decoded packet");
 
+	def processConfig(self, data):
+		md5sum = md5.new()
+		md5sum.update(data[:16])
+		md5_result = md5sum.digest()
+
+		print("Config data: "+RNS.hexrep(data[:16]))
+		print("Config chks: "+RNS.hexrep(data[16:]))
+		print("Config calc: "+RNS.hexrep(md5_result))
+
+		if md5_result == data[16:]:
+			print("Config checksum match")
+			self.config_p				= data[ord(KISS.ADDR_E_P)]
+			self.config_slottime 		= data[ord(KISS.ADDR_E_SLOTTIME)]
+			self.config_preamble 		= data[ord(KISS.ADDR_E_PREAMBLE)]
+			self.config_tail 			= data[ord(KISS.ADDR_E_TAIL)]
+			self.config_led_intensity 	= data[ord(KISS.ADDR_E_LED_INTENSITY)]
+			self.config_output_gain 	= data[ord(KISS.ADDR_E_OUTPUT_GAIN)]
+			self.config_input_gain 		= data[ord(KISS.ADDR_E_INPUT_GAIN)]
+			self.config_passall 		= data[ord(KISS.ADDR_E_PASSALL)]
+			self.config_log_packets 	= data[ord(KISS.ADDR_E_LOG_PACKETS)]
+			self.config_crypto_lock 	= data[ord(KISS.ADDR_E_CRYPTO_LOCK)]
+			self.config_gps_mode 		= data[ord(KISS.ADDR_E_GPS_MODE)]
+			self.config_bluetooth_mode 	= data[ord(KISS.ADDR_E_BLUETOOTH_MODE)]
+			self.config_serial_baudrate = data[ord(KISS.ADDR_E_SERIAL_BAUDRATE)]
+			self.config_valid = True
+		else:
+			print("Invalid checksum")
+			self.config_valid = False
 
 	def processOutgoing(self,data):
 		pass
@@ -276,6 +449,7 @@ class KISSInterface(Interface):
 			escape = False
 			command = KISS.CMD_UNKNOWN
 			data_buffer = ""
+			config_buffer = ""
 			last_read_ms = int(time.time()*1000)
 
 			while self.serial.is_open:
@@ -286,10 +460,14 @@ class KISSInterface(Interface):
 					if (in_frame and byte == KISS.FEND and command == KISS.CMD_DATA):
 						in_frame = False
 						self.processIncoming(data_buffer)
+					elif (in_frame and byte == KISS.FEND and command == KISS.CMD_PRINT_CONFIG):
+						in_frame = False
+						self.processConfig(config_buffer)
 					elif (byte == KISS.FEND):
 						in_frame = True
 						command = KISS.CMD_UNKNOWN
 						data_buffer = ""
+						config_buffer = ""
 					elif (in_frame and len(data_buffer) < 611):
 						if (len(data_buffer) == 0 and command == KISS.CMD_UNKNOWN):
 							command = byte
@@ -304,6 +482,17 @@ class KISSInterface(Interface):
 										byte = KISS.FESC
 									escape = False
 								data_buffer = data_buffer+byte
+						elif (command == KISS.CMD_PRINT_CONFIG):
+							if (byte == KISS.FESC):
+								escape = True
+							else:
+								if (escape):
+									if (byte == KISS.TFEND):
+										byte = KISS.FEND
+									if (byte == KISS.TFESC):
+										byte = KISS.FESC
+									escape = False
+								config_buffer = config_buffer+byte
 						elif (command == KISS.CMD_AUDIO_PEAK):
 							self.displayPeak(byte)
 				else:
@@ -319,8 +508,9 @@ class KISSInterface(Interface):
 		except Exception as e:
 			self.online = False
 			RNS.log("A serial port error occurred, the contained exception was: "+str(e))
-			RNS.log("The interface "+str(self.name)+" is now offline. Restart Reticulum to attempt reconnection.")
+			RNS.log("The interface "+str(self.name)+" is now offline.")
 			raise e
+			close_device()
 
 	def __str__(self):
 		return "KISSInterface["+self.name+"]"
@@ -338,6 +528,8 @@ class appRequestHandler(BaseHTTPRequestHandler):
 		request.end_headers()
 
 	def do_GET(request):
+		global kiss_interface, keyfile_exists, entropy_source_exists, aes_disabled
+
 		if (request.path == "/"):
 			request.send_response(302)
 			request.send_header("Location", "/app/")
@@ -351,12 +543,38 @@ class appRequestHandler(BaseHTTPRequestHandler):
 			request.json_headers()
 			request.wfile.write(json.dumps(list_serial_ports()).encode("utf-8"))
 
-		if (request.path == "/getconfig"):
+		if (request.path == "/getvolumes"):
 			request.json_headers()
+			request.wfile.write(json.dumps(list_volumes()).encode("utf-8"))
+
+		if (request.path == "/saveconfig"):
+			request.json_headers()
+			kiss_interface.saveConfig()
 			request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
 
+		if (request.path == "/getconfig"):
+			request.json_headers()
+			if kiss_interface and kiss_interface.config_valid:
+				configData = {
+					"preamble": ord(kiss_interface.config_preamble),
+					"tail": ord(kiss_interface.config_tail),
+					"p": ord(kiss_interface.config_p),
+					"slottime": ord(kiss_interface.config_slottime),
+					"led_intensity": ord(kiss_interface.config_led_intensity),
+					"output_gain": ord(kiss_interface.config_output_gain),
+					"input_gain": ord(kiss_interface.config_input_gain),
+					"passall": ord(kiss_interface.config_passall),
+					"log_packets": ord(kiss_interface.config_log_packets),
+					"crypto_lock": ord(kiss_interface.config_crypto_lock),
+					"gps_mode": ord(kiss_interface.config_gps_mode),
+					"bluetooth_mode": ord(kiss_interface.config_bluetooth_mode),
+					"serial_baudrate": ord(kiss_interface.config_serial_baudrate)
+				}
+				request.wfile.write(json.dumps({"response":"ok", "config":configData}).encode("utf-8"))
+			else:
+				request.wfile.write(json.dumps({"response":"fail"}).encode("utf-8"))
+
 		if (request.path == "/getpeak"):
-			global kiss_interface
 			request.json_headers()
 			request.wfile.write(json.dumps({"response":"ok", "peak":kiss_interface.audiopeak, "decode": kiss_interface.has_decode}).encode("utf-8"))
 			kiss_interface.has_decode = False
@@ -374,6 +592,132 @@ class appRequestHandler(BaseHTTPRequestHandler):
 				request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
 			else:
 				request.wfile.write(json.dumps({"response":"failed"}).encode("utf-8"))
+
+		if (request.path.startswith("/volumeinit")):
+			request.json_headers()
+			query = parse_qs(urlparse(request.path).query)
+			q_path = query["path"][0]
+
+			if (volume_init(q_path)):
+				request.wfile.write(json.dumps({"response":"ok", "key_installed": keyfile_exists, "aes_disabled":aes_disabled}).encode("utf-8"))
+			else:
+				request.wfile.write(json.dumps({"response":"failed"}).encode("utf-8"))
+
+		if (request.path.startswith("/setled")):
+			request.json_headers()
+			query = parse_qs(urlparse(request.path).query)
+			q_val = int(query["val"][0])
+			kiss_interface.setLEDIntensity(q_val)
+			request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+
+		if (request.path.startswith("/setingain")):
+			request.json_headers()
+			query = parse_qs(urlparse(request.path).query)
+			q_val = int(query["val"][0])
+			kiss_interface.setInputGain(q_val)
+			request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+
+		if (request.path.startswith("/setoutgain")):
+			request.json_headers()
+			query = parse_qs(urlparse(request.path).query)
+			q_val = int(query["val"][0])
+			kiss_interface.setOutputGain(q_val)
+			request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+
+		if (request.path.startswith("/setpersistence")):
+			request.json_headers()
+			query = parse_qs(urlparse(request.path).query)
+			q_val = int(query["val"][0])
+			kiss_interface.setPersistence(q_val)
+			request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+
+		if (request.path.startswith("/setpreamble")):
+			request.json_headers()
+			query = parse_qs(urlparse(request.path).query)
+			q_val = int(query["val"][0])
+			kiss_interface.setPreamble(q_val)
+			request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+
+		if (request.path.startswith("/settail")):
+			request.json_headers()
+			query = parse_qs(urlparse(request.path).query)
+			q_val = int(query["val"][0])
+			kiss_interface.setTxTail(q_val)
+			request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+
+		if (request.path.startswith("/setslottime")):
+			request.json_headers()
+			query = parse_qs(urlparse(request.path).query)
+			q_val = int(query["val"][0])
+			kiss_interface.setSlotTime(q_val)
+			request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+
+		if (request.path.startswith("/setbaudrate")):
+			request.json_headers()
+			query = parse_qs(urlparse(request.path).query)
+			q_val = int(query["val"][0])
+			kiss_interface.setBaudrate(q_val)
+			request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+
+		if (request.path.startswith("/setpassall")):
+			request.json_headers()
+			query = parse_qs(urlparse(request.path).query)
+			q_val = int(query["val"][0])
+			kiss_interface.setPassall(q_val)
+			request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+
+		if (request.path.startswith("/setlogtosd")):
+			request.json_headers()
+			query = parse_qs(urlparse(request.path).query)
+			q_val = int(query["val"][0])
+			kiss_interface.setLogToSD(q_val)
+			request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+
+		if (request.path.startswith("/setgpsmode")):
+			request.json_headers()
+			query = parse_qs(urlparse(request.path).query)
+			q_val = int(query["val"][0])
+			kiss_interface.setGPSMode(q_val)
+			request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+
+		if (request.path.startswith("/setbluetoothmode")):
+			request.json_headers()
+			query = parse_qs(urlparse(request.path).query)
+			q_val = int(query["val"][0])
+			kiss_interface.setBluetoothMode(q_val)
+			request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+
+		if (request.path == "/aesenable"):
+			request.json_headers()
+			if aes_enable():
+				request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+			else:
+				request.wfile.write(json.dumps({"response":"fail"}).encode("utf-8"))
+
+		if (request.path == "/aesdisable"):
+			request.json_headers()
+			if aes_disable():
+				request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+			else:
+				request.wfile.write(json.dumps({"response":"fail"}).encode("utf-8"))
+
+		if (request.path == "/generatekey"):
+			request.json_headers()
+			if generate_key():
+				request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+			else:
+				request.wfile.write(json.dumps({"response":"fail"}).encode("utf-8"))
+
+		if (request.path.startswith("/loadkey")):
+			request.json_headers()
+			query = parse_qs(urlparse(request.path).query)
+			q_val = query["val"][0]
+			if load_key(q_val):
+				request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+			else:
+				request.wfile.write(json.dumps({"response":"fail"}).encode("utf-8"))
+			
+
 
 		if (request.path.startswith("/app/")):
 			path = request.path.replace("/app/", "")
@@ -410,12 +754,23 @@ def list_serial_ports():
 		
 	return portlist
 
+def list_volumes():
+	partitions = psutil.disk_partitions()
+	volumelist = []
+	for partition in partitions:
+		if partition.mountpoint != "/" and partition.mountpoint != "C://" and not partition.mountpoint.startswith("/private") and not partition.mountpoint.startswith("/Volumes/Time Machine Backups"):
+			RNS.log("Found partition:")
+			RNS.log("\t"+str(partition))
+			volumelist.append(partition.mountpoint)
+
+	return volumelist
+
 def open_device(port, baud):
 	global kiss_interface
 	try:
 		kiss_interface = KISSInterface(None, "OpenModem", port, baud, 8, "N", 1, None, None, None, None, False)
 		kiss_interface.enableDiagnostics()
-		kiss_interface.setInputGain(200)
+		kiss_interface.retrieveConfig()
 		return True
 	except Exception as e:
 		#raise e
@@ -424,8 +779,128 @@ def open_device(port, baud):
 def close_device():
 	os._exit(0)
 
+keyfile_exists = False
+entropy_source_exists = False
+aes_disabled = False
+volume_ok = False
+volume_path = None
+def volume_init(path):
+	global keyfile_exists, entropy_source_exists, volume_ok, volume_path, aes_disabled
+
+	volume_ok = False
+	RNS.log("Volume init: "+path)
+
+	if os.path.isdir(path+"/OpenModem"):
+		RNS.log("OpenModem data directory exists")
+	else:
+		RNS.log("OpenModem data directory does not exist, creating")
+		try:
+			os.mkdir(path+"/OpenModem")
+			RNS.log("Directory created")
+		except Exception as e:
+			RNS.log("Could not create directory")
+			volume_ok = False
+			return False
+
+	if os.path.isfile(path+"/OpenModem/entropy.source"):
+		entropy_source_exists = True
+		RNS.log("Entropy source installed")
+	else:
+		RNS.log("Entropy source is not installed, installing...")
+		if install_entropy_source(path+"/OpenModem/"):
+			entropy_source_exists = True
+		else:
+			entropy_source_exists = False
+
+	if os.path.isfile(path+"/OpenModem/aes128.key"):
+		keyfile_exists = True
+		RNS.log("AES-128 key installed")
+	else:
+		RNS.log("AES-128 key is not installed")
+		keyfile_exists = False
+
+	if os.path.isfile(path+"/OpenModem/aes128.disable"):
+		aes_disabled = True
+		RNS.log("AES-128 is disabled")
+	else:
+		RNS.log("AES-128 is allowed")
+		aes_disabled = False
+
+	volume_ok = True
+	volume_path = path + "/OpenModem/"
+	RNS.log("Volume path is "+volume_path)
+	return True
+
+def generate_key():
+	global volume_ok, volume_path
+	if volume_ok:
+		RNS.log("Generating new AES-128 key in "+volume_path+"...")
+		try:
+			file = open(volume_path+"aes128.key", "w")
+			file.write(os.urandom(128/8))
+			file.close()
+
+			return True
+		except Exception as e:
+			RNS.log("Could not generate key")
+			return False
+
+def load_key(keydata):
+	global volume_ok, volume_path
+	if volume_ok:
+		RNS.log("Loading supplied key onto "+volume_path+"...")
+		try:
+			key = base64.b64decode(keydata)
+			file = open(volume_path+"aes128.key", "w")
+			file.write(key)
+			file.close()
+			return True
+		except Exception as e:
+			raise e
+			return False
+	else:
+		return False
+
+
+def aes_disable():
+	global volume_ok, volume_path
+	if volume_ok:
+		open(volume_path+"aes128.disable", 'a').close()
+		RNS.log("Disabling AES-128")
+		return True
+
+	return False
+
+def aes_enable():
+	global volume_ok, volume_path
+	if volume_ok:
+		if os.path.isfile(volume_path+"aes128.disable"):
+			os.remove(volume_path+"aes128.disable")
+			RNS.log("Allowing AES-128")
+			return True
+
+	return False
+
+
+def install_entropy_source(path):
+	RNS.log("Installing entropy source in "+path+"...")
+	try:
+		megabytes_to_write = 32
+		bytes_per_block = 1024
+		bytes_written = 0
+		file = open(path+"entropy.source", "a")
+		while bytes_written < megabytes_to_write*1024*1024:
+			file.write(os.urandom(bytes_per_block))
+			bytes_written = bytes_written + bytes_per_block
+		file.close()
+
+		return True
+	except Exception as e:
+		RNS.log("Could not install entropy source")
+		return False
+
+
 def get_port():
-	return 44444
 	return random.randrange(40000,49999,1)
 
 def start_server():
@@ -454,8 +929,8 @@ def start_server():
 def main():
 	include_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 	os.chdir(include_path)
-	ports = list_serial_ports()
-	print(ports)
+	list_serial_ports()
+	list_volumes()
 	if (len(sys.argv) == 1):
 		start_server()
 
