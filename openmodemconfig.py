@@ -751,7 +751,7 @@ def list_serial_ports():
 	portlist = []
 	for port in ports:
 		portlist.insert(0, port.device)
-		
+
 	return portlist
 
 def list_volumes():
