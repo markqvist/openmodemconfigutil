@@ -41,7 +41,7 @@ function request_connection() {
 		console.log(data);
 		if (data["response"] == "ok") {
 			console.log("Serial port open");
-			setTimeout(request_config, 250);
+			setTimeout(request_config, 600);
 		} else {
 			console.log("Could not connect");
 			document.connection_state = false;
@@ -58,6 +58,7 @@ function request_config() {
 	  url: "/getconfig",
 	  timeout: 500,
 	  success: function(data) {
+	  		console.log(data);
 			if (data["response"] == "ok") {
 				console.log("Connected!");
 				jQuery("#disconnectbutton").show();
@@ -366,6 +367,9 @@ function update_fields_from_config(configdata) {
 		} else {
 			jQuery("#c_logtosd").checkbox("uncheck");
 		}
+		if (parseInt(configdata["modem_mode"]) == 1) { jQuery("#s_modem_mode").dropdown("set selected", "AFSK300");}
+		if (parseInt(configdata["modem_mode"]) == 2) { jQuery("#s_modem_mode").dropdown("set selected", "AFSK1200");}
+		if (parseInt(configdata["modem_mode"]) == 3) { jQuery("#s_modem_mode").dropdown("set selected", "AFSK2400");}
 	}, 50);
 }
 

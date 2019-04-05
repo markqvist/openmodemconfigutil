@@ -77,6 +77,7 @@ class KISS():
 	CMD_BT_MODE					= chr(0x0E)
 	CMD_SERIAL_BAUDRATE			= chr(0x10)
 	CMD_EN_DIAGS    			= chr(0x13)
+	CMD_MODE 		   			= chr(0x14)
 	CMD_PRINT_CONFIG			= chr(0xF0)
 	CMD_LED_INTENSITY			= chr(0x08)
 	CMD_RETURN					= chr(0xFF)
@@ -107,6 +108,10 @@ class KISS():
 	CONFIG_BLUETOOTH_OFF		= chr(0x00)
 	CONFIG_BLUETOOTH_AUTODETECT	= chr(0x01)
 	CONFIG_BLUETOOTH_REQUIRED	= chr(0x02)
+
+	MODE_AFSK_300				= chr(0x01)
+	MODE_AFSK_1200				= chr(0x02)
+	MODE_AFSK_2400				= chr(0x03)
 
 	@staticmethod
 	def escape(data):
@@ -147,6 +152,8 @@ class KISSInterface(Interface):
 		self.txtail      = txtail if txtail != None else 20;
 		self.persistence = persistence if persistence != None else 64;
 		self.slottime    = slottime if slottime != None else 20;
+
+		self.modem_mode = None
 
 		self.config_p			= None
 		self.config_slottime	= None
@@ -495,6 +502,8 @@ class KISSInterface(Interface):
 								config_buffer = config_buffer+byte
 						elif (command == KISS.CMD_AUDIO_PEAK):
 							self.displayPeak(byte)
+						elif (command == KISS.CMD_MODE):
+							self.modem_mode = byte
 				else:
 					time_since_last = int(time.time()*1000) - last_read_ms
 					if len(data_buffer) > 0 and time_since_last > self.timeout:
@@ -568,7 +577,8 @@ class appRequestHandler(BaseHTTPRequestHandler):
 					"crypto_lock": ord(kiss_interface.config_crypto_lock),
 					"gps_mode": ord(kiss_interface.config_gps_mode),
 					"bluetooth_mode": ord(kiss_interface.config_bluetooth_mode),
-					"serial_baudrate": ord(kiss_interface.config_serial_baudrate)
+					"serial_baudrate": ord(kiss_interface.config_serial_baudrate),
+					"modem_mode": ord(kiss_interface.modem_mode)
 				}
 				request.wfile.write(json.dumps({"response":"ok", "config":configData}).encode("utf-8"))
 			else:
