@@ -272,7 +272,7 @@ function request_passall_change() {
 
 function request_logtosd_change() {
 	if (document.connection_state) {
-		var val = jQuery("#c_passall").checkbox("is checked");
+		var val = jQuery("#c_logtosd").checkbox("is checked");
 		val = val ? 1 : 0;
 		console.log("Setting logtosd to:");
 		console.log(val);
