@@ -1,8 +1,3 @@
-# Usage:
-#    python setup.py py2app
-#
-# Manually add public folder to app resources
-
 import os
 from setuptools import setup
 
