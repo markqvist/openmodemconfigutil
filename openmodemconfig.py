@@ -918,7 +918,7 @@ def start_server():
 	server_started = False
 
 	while not server_started and retries < 100:
-		try:	
+		try:
 			list_serial_ports()
 			port = get_port()
 			server_address = ("127.0.0.1", port)
