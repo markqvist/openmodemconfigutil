@@ -8,8 +8,9 @@ from time import sleep
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qs
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
+# from cryptography.hazmat.backends import default_backend
+# from cryptography.hazmat.primitives import hashes
+import hashlib
 import base64
 import psutil
 import threading
@@ -415,12 +416,12 @@ class KISSInterface(Interface):
 
 	def processConfig(self, data):
 		RNS.log("Processing config")
-		md5digest = hashes.Hash(hashes.MD5(), backend=default_backend())
-		md5digest.update(data[:16])
-		md5_result = md5digest.finalize()
+		md5 = hashlib.md5()
+		md5.update(data[:16])
+		md5_result = md5.digest()
 
 		if md5_result == data[16:]:
-			print("Config checksum match")
+			RNS.log("Config checksum match")
 			self.config_p				= data[KISS.ADDR_E_P]
 			self.config_slottime 		= data[KISS.ADDR_E_SLOTTIME]
 			self.config_preamble 		= data[KISS.ADDR_E_PREAMBLE]
