@@ -8,8 +8,6 @@ from time import sleep
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qs
-# from cryptography.hazmat.backends import default_backend
-# from cryptography.hazmat.primitives import hashes
 import hashlib
 import base64
 import psutil
@@ -18,6 +16,10 @@ import webview
 import random
 import os
 import sys
+
+if sys.platform.startswith('darwin'):
+	import webview.platforms.cocoa
+	import pkg_resources.py2_warn
 
 portlist = []
 volumelist = []
@@ -909,9 +911,7 @@ def install_entropy_source(path):
 
 
 def get_port():
-	# TODO: Change
-	#return random.randrange(40000,49999,1)
-	return 48031
+	return random.randrange(40000,49999,1)
 
 def start_server():
 	retries = 0
@@ -919,24 +919,46 @@ def start_server():
 
 	while not server_started and retries < 100:
 		try:
+			retries += 1
 			list_serial_ports()
 			port = get_port()
 			server_address = ("127.0.0.1", port)
 			httpd = ThreadedHTTPServer(server_address, appRequestHandler)
 			threading.Thread(target=httpd.serve_forever).start()
 			print(("Server running on port "+str(port)))
-			retval = webview.create_window('OpenModem Configuration', 'http://localhost:'+str(port)+'/', width=575, height=600)
-			if retval == None:
-				os._exit(0)
+			server_started = True
 
 		except Exception as e:
-			retries += 1
+			print("Exception while starting server: "+str(e))
+			pass
 
-	print("Could not start server, exiting")
-	exit()
+	webview.create_window('OpenModem Configuration', 'http://localhost:'+str(port)+'/', width=575, height=600)
+	webview.start()
 
+	os._exit(0)
 
 def main():
+	if sys.platform.startswith('darwin'):
+		try:
+			from Foundation import NSBundle
+			bundle = NSBundle.mainBundle()
+			if bundle:
+				app_name = "OpenModem Configuration"
+				app_info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
+				if app_info:
+					app_info['CFBundleName'] = app_name
+					app_info["CFBundleGetInfoString"] = "unsigned.io"
+					app_info["CFBundleLongVersionString"] = "unsigned.io"
+					app_info["NSHumanReadableCopyright"] = "unsigned.io"
+					app_info["CFBundleShortVersionString"] = "1.0.0"
+					app_info["CFBundleVersion"] = "1.0.0"
+					app_info["CFBundleIdentifier"] = "io.unsigned.openmodemconfig"
+					app_info["CFBundleExecutable"] = "Test"
+					print(app_info)
+					print(app_info["CFBundleExecutable"])
+		except ImportError:
+			pass
+
 	include_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 	os.chdir(include_path)
 	list_serial_ports()

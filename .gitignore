@@ -1,4 +1,6 @@
 .DS_Store
+Distribution
+
 # Firmware and signing keys
 firmware/*.hex
 firmware/*.key
