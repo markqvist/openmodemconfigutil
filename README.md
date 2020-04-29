@@ -11,5 +11,8 @@ OpenModem Configuration Utility
 
 ```
 # Install dependencies
-pip install pyserial cryptography requests psutil pywebview
+pip3 install pyserial cryptography requests psutil pywebview
+
+# Run
+python3 openmodemconfig.py
 ```
