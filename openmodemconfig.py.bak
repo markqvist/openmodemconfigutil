@@ -5,11 +5,9 @@ import json
 import time
 import struct
 from time import sleep
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from socketserver import ThreadingMixIn
-from urllib.parse import urlparse, parse_qs
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from SocketServer import ThreadingMixIn
+from urlparse import urlparse, parse_qs
 import base64
 import psutil
 import threading
@@ -17,6 +15,7 @@ import webview
 import random
 import os
 import sys
+import md5
 
 portlist = []
 volumelist = []
@@ -35,13 +34,13 @@ class RNS():
 		delimiter = ":"
 		if not delimit:
 			delimiter = ""
-		hexrep = delimiter.join("{:02x}".format(c) for c in data)
+		hexrep = delimiter.join("{:02x}".format(ord(c)) for c in data)
 		return hexrep
 
 	@staticmethod
 	def prettyhexrep(data):
 		delimiter = ""
-		hexrep = "<"+delimiter.join("{:02x}".format(c) for c in data)+">"
+		hexrep = "<"+delimiter.join("{:02x}".format(ord(c)) for c in data)+">"
 		return hexrep
 
 class Interface:
@@ -55,69 +54,69 @@ class Interface:
 		pass
 
 class KISS():
-	FEND						= 0xC0
-	FESC						= 0xDB
-	TFEND						= 0xDC
-	TFESC						= 0xDD
-	CMD_UNKNOWN					= 0xFE
-	CMD_DATA					= 0x00
-	CMD_TXDELAY					= 0x01
-	CMD_P						= 0x02
-	CMD_SLOTTIME				= 0x03
-	CMD_TXTAIL					= 0x04
-	CMD_FULLDUPLEX				= 0x05
-	CMD_SETHARDWARE				= 0x06
-	CMD_SAVE_CONFIG				= 0x07
-	CMD_READY       			= 0x0F
-	CMD_AUDIO_PEAK  			= 0x12
-	CMD_OUTPUT_GAIN 			= 0x09
-	CMD_INPUT_GAIN  			= 0x0A
-	CMD_PASSALL 				= 0x0B
-	CMD_LOG_PACKETS 			= 0x0C
-	CMD_GPS_MODE				= 0x0D
-	CMD_BT_MODE					= 0x0E
-	CMD_SERIAL_BAUDRATE			= 0x10
-	CMD_EN_DIAGS    			= 0x13
-	CMD_MODE 		   			= 0x14
-	CMD_PRINT_CONFIG			= 0xF0
-	CMD_LED_INTENSITY			= 0x08
-	CMD_RETURN					= 0xFF
+	FEND						= chr(0xC0)
+	FESC						= chr(0xDB)
+	TFEND						= chr(0xDC)
+	TFESC						= chr(0xDD)
+	CMD_UNKNOWN					= chr(0xFE)
+	CMD_DATA					= chr(0x00)
+	CMD_TXDELAY					= chr(0x01)
+	CMD_P						= chr(0x02)
+	CMD_SLOTTIME				= chr(0x03)
+	CMD_TXTAIL					= chr(0x04)
+	CMD_FULLDUPLEX				= chr(0x05)
+	CMD_SETHARDWARE				= chr(0x06)
+	CMD_SAVE_CONFIG				= chr(0x07)
+	CMD_READY       			= chr(0x0F)
+	CMD_AUDIO_PEAK  			= chr(0x12)
+	CMD_OUTPUT_GAIN 			= chr(0x09)
+	CMD_INPUT_GAIN  			= chr(0x0A)
+	CMD_PASSALL 				= chr(0x0B)
+	CMD_LOG_PACKETS 			= chr(0x0C)
+	CMD_GPS_MODE				= chr(0x0D)
+	CMD_BT_MODE					= chr(0x0E)
+	CMD_SERIAL_BAUDRATE			= chr(0x10)
+	CMD_EN_DIAGS    			= chr(0x13)
+	CMD_MODE 		   			= chr(0x14)
+	CMD_PRINT_CONFIG			= chr(0xF0)
+	CMD_LED_INTENSITY			= chr(0x08)
+	CMD_RETURN					= chr(0xFF)
 
-	ADDR_E_MAJ_VERSION			= 0x00
-	ADDR_E_MIN_VERSION			= 0x01
-	ADDR_E_CONF_VERSION			= 0x02
-	ADDR_E_P					= 0x03
-	ADDR_E_SLOTTIME				= 0x04
-	ADDR_E_PREAMBLE				= 0x05
-	ADDR_E_TAIL					= 0x06
-	ADDR_E_LED_INTENSITY		= 0x07
-	ADDR_E_OUTPUT_GAIN			= 0x08
-	ADDR_E_INPUT_GAIN			= 0x09
-	ADDR_E_PASSALL				= 0x0A
-	ADDR_E_LOG_PACKETS			= 0x0B
-	ADDR_E_CRYPTO_LOCK			= 0x0C
-	ADDR_E_GPS_MODE				= 0x0D
-	ADDR_E_BLUETOOTH_MODE		= 0x0E
-	ADDR_E_SERIAL_BAUDRATE		= 0x0F
-	ADDR_E_CHECKSUM				= 0x10
-	ADDR_E_END					= 0x20
+	ADDR_E_MAJ_VERSION			= chr(0x00)
+	ADDR_E_MIN_VERSION			= chr(0x01)
+	ADDR_E_CONF_VERSION			= chr(0x02)
+	ADDR_E_P					= chr(0x03)
+	ADDR_E_SLOTTIME				= chr(0x04)
+	ADDR_E_PREAMBLE				= chr(0x05)
+	ADDR_E_TAIL					= chr(0x06)
+	ADDR_E_LED_INTENSITY		= chr(0x07)
+	ADDR_E_OUTPUT_GAIN			= chr(0x08)
+	ADDR_E_INPUT_GAIN			= chr(0x09)
+	ADDR_E_PASSALL				= chr(0x0A)
+	ADDR_E_LOG_PACKETS			= chr(0x0B)
+	ADDR_E_CRYPTO_LOCK			= chr(0x0C)
+	ADDR_E_GPS_MODE				= chr(0x0D)
+	ADDR_E_BLUETOOTH_MODE		= chr(0x0E)
+	ADDR_E_SERIAL_BAUDRATE		= chr(0x0F)
+	ADDR_E_CHECKSUM				= chr(0x10)
+	ADDR_E_END					= chr(0x20)
 
-	CONFIG_GPS_OFF				= 0x00
-	CONFIG_GPS_AUTODETECT		= 0x01
-	CONFIG_GPS_REQUIRED			= 0x02
+	CONFIG_GPS_OFF				= chr(0x00)
+	CONFIG_GPS_AUTODETECT		= chr(0x01)
+	CONFIG_GPS_REQUIRED			= chr(0x02)
 
-	CONFIG_BLUETOOTH_OFF		= 0x00
-	CONFIG_BLUETOOTH_AUTODETECT	= 0x01
-	CONFIG_BLUETOOTH_REQUIRED	= 0x02
+	CONFIG_BLUETOOTH_OFF		= chr(0x00)
+	CONFIG_BLUETOOTH_AUTODETECT	= chr(0x01)
+	CONFIG_BLUETOOTH_REQUIRED	= chr(0x02)
 
-	MODE_AFSK_300				= 0x01
-	MODE_AFSK_1200				= 0x02
-	MODE_AFSK_2400				= 0x03
+	MODE_AFSK_300				= chr(0x01)
+	MODE_AFSK_1200				= chr(0x02)
+	MODE_AFSK_2400				= chr(0x03)
 
 	@staticmethod
 	def escape(data):
-		data = data.replace(bytes([0xdb]), bytes([0xdb])+bytes([0xdd]))
-		data = data.replace(bytes([0xc0]), bytes([0xdb])+bytes([0xdc]))
+		data = data.replace(chr(0xdb), chr(0xdb)+chr(0xdd))
+		data = data.replace(chr(0xc0), chr(0xdb)+chr(0xdc))
 		return data
 
 class KISSInterface(Interface):
@@ -206,18 +205,20 @@ class KISSInterface(Interface):
 			self.online = True
 			RNS.log("Serial port "+self.port+" is now open")
 			self.interface_ready = True
+			RNS.log("KISS interface configured")
 		else:
 			raise IOError("Could not open serial port")
 
 
 	def askForPeak(self):
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_AUDIO_PEAK])+bytes([0x01])+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_AUDIO_PEAK+b'\x01'+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not ask for peak data")
 
 	def displayPeak(self, peak):
-		self.audiopeak = peak
+		peak_value = struct.unpack("b", peak)
+		self.audiopeak = peak_value[0]
 
 	def setPreamble(self, preamble):
 		#preamble_ms = preamble
@@ -227,8 +228,7 @@ class KISSInterface(Interface):
 		if preamble > 255:
 			preamble = 255
 
-		command = KISS.escape(bytes([preamble]))
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_TXDELAY])+command+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_TXDELAY+chr(preamble)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not configure KISS interface preamble to "+str(preamble)+" (command value "+str(preamble)+")")
@@ -241,8 +241,7 @@ class KISSInterface(Interface):
 		if txtail > 255:
 			txtail = 255
 
-		command = KISS.escape(bytes([txtail]))
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_TXTAIL])+command+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_TXTAIL+chr(txtail)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not configure KISS interface TX tail to "+str(txtail)+" (command value "+str(txtail)+")")
@@ -253,8 +252,7 @@ class KISSInterface(Interface):
 		if persistence > 255:
 			persistence = 255
 
-		command = KISS.escape(bytes([persistence]))
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_P])+command+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_P+chr(persistence)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not configure KISS interface persistence to "+str(persistence))
@@ -267,15 +265,13 @@ class KISSInterface(Interface):
 		if slottime > 255:
 			slottime = 255
 
-		command = KISS.escape(bytes([slottime]))
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_SLOTTIME])+command+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_SLOTTIME+chr(slottime)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not configure KISS interface slot time to "+str(slottime)+" (command value "+str(slottime)+")")
 
 	def setFlowControl(self, flow_control):
-		command = KISS.escape(bytes([0x01]))
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_READY])+command+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_READY+chr(0x01)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			if (flow_control):
@@ -289,8 +285,7 @@ class KISSInterface(Interface):
 		if gain > 255:
 			gain = 255
 
-		command = KISS.escape(bytes([gain]))
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_INPUT_GAIN])+command+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_INPUT_GAIN+chr(gain)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not configure KISS interface input gain to "+str(gain))
@@ -301,8 +296,7 @@ class KISSInterface(Interface):
 		if gain > 255:
 			gain = 255
 
-		command = KISS.escape(bytes([gain]))
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_OUTPUT_GAIN])+command+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_OUTPUT_GAIN+chr(gain)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not configure KISS interface input gain to "+str(gain))
@@ -314,8 +308,7 @@ class KISSInterface(Interface):
 		if val > 255:
 			val = 255
 
-		command = KISS.escape(bytes([val]))
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_LED_INTENSITY])+command+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_LED_INTENSITY+chr(val)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not configure KISS interface LED intensity to "+str(val))
@@ -327,8 +320,7 @@ class KISSInterface(Interface):
 		if val > 2:
 			val = 2
 
-		command = KISS.escape(bytes([val]))
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_GPS_MODE])+command+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_GPS_MODE+chr(val)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not configure KISS interface GPS mode to "+str(val))
@@ -339,8 +331,7 @@ class KISSInterface(Interface):
 		if val > 2:
 			val = 2
 
-		command = KISS.escape(bytes([val]))
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_BT_MODE])+command+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_BT_MODE+chr(val)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not configure KISS interface BT mode to "+str(val))
@@ -351,8 +342,18 @@ class KISSInterface(Interface):
 		if val > 12:
 			val = 12
 
-		command = KISS.escape(bytes([val]))
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_SERIAL_BAUDRATE])+command+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_SERIAL_BAUDRATE+chr(val)+KISS.FEND
+		written = self.serial.write(kiss_command)
+		if written != len(kiss_command):
+			raise IOError("Could not configure KISS interface baudrate to "+str(gain))
+
+	def setBaudrate(self, val):
+		if val < 1:
+			val = 1
+		if val > 12:
+			val = 12
+
+		kiss_command = KISS.FEND+KISS.CMD_SERIAL_BAUDRATE+chr(val)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not configure KISS interface baudrate to "+str(gain))
@@ -363,8 +364,7 @@ class KISSInterface(Interface):
 		if val > 1:
 			val = 1
 
-		command = KISS.escape(bytes([val]))
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_PASSALL])+command+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_PASSALL+chr(val)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not configure KISS interface passall to "+str(gain))
@@ -375,33 +375,32 @@ class KISSInterface(Interface):
 		if val > 1:
 			val = 1
 
-		command = KISS.escape(bytes([val]))
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_LOG_PACKETS])+command+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_LOG_PACKETS+chr(val)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not configure KISS interface logtosd to "+str(gain))
 
 
 	def saveConfig(self):
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_SAVE_CONFIG])+bytes([0x01])+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_SAVE_CONFIG+chr(0x01)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not send save config command")
 
 	def enableDiagnostics(self):
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_EN_DIAGS])+bytes([0x01])+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_EN_DIAGS+chr(0x01)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not enable KISS interface diagnostics")
 
 	def retrieveConfig(self):
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_PRINT_CONFIG])+bytes([0x01])+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_PRINT_CONFIG+chr(0x01)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not ask for config data")
 
 	def disableDiagnostics(self):
-		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_EN_DIAGS])+bytes([0x00])+bytes([KISS.FEND])
+		kiss_command = KISS.FEND+KISS.CMD_EN_DIAGS+chr(0x00)+KISS.FEND
 		written = self.serial.write(kiss_command)
 		if written != len(kiss_command):
 			raise IOError("Could not disable KISS interface diagnostics")
@@ -414,26 +413,29 @@ class KISSInterface(Interface):
 		RNS.log("Decoded packet");
 
 	def processConfig(self, data):
-		RNS.log("Processing config")
-		md5digest = hashes.Hash(hashes.MD5(), backend=default_backend())
-		md5digest.update(data[:16])
-		md5_result = md5digest.finalize()
+		md5sum = md5.new()
+		md5sum.update(data[:16])
+		md5_result = md5sum.digest()
+
+		print("Config data: "+RNS.hexrep(data[:16]))
+		print("Config chks: "+RNS.hexrep(data[16:]))
+		print("Config calc: "+RNS.hexrep(md5_result))
 
 		if md5_result == data[16:]:
 			print("Config checksum match")
-			self.config_p				= data[KISS.ADDR_E_P]
-			self.config_slottime 		= data[KISS.ADDR_E_SLOTTIME]
-			self.config_preamble 		= data[KISS.ADDR_E_PREAMBLE]
-			self.config_tail 			= data[KISS.ADDR_E_TAIL]
-			self.config_led_intensity 	= data[KISS.ADDR_E_LED_INTENSITY]
-			self.config_output_gain 	= data[KISS.ADDR_E_OUTPUT_GAIN]
-			self.config_input_gain 		= data[KISS.ADDR_E_INPUT_GAIN]
-			self.config_passall 		= data[KISS.ADDR_E_PASSALL]
-			self.config_log_packets 	= data[KISS.ADDR_E_LOG_PACKETS]
-			self.config_crypto_lock 	= data[KISS.ADDR_E_CRYPTO_LOCK]
-			self.config_gps_mode 		= data[KISS.ADDR_E_GPS_MODE]
-			self.config_bluetooth_mode 	= data[KISS.ADDR_E_BLUETOOTH_MODE]
-			self.config_serial_baudrate = data[KISS.ADDR_E_SERIAL_BAUDRATE]
+			self.config_p				= data[ord(KISS.ADDR_E_P)]
+			self.config_slottime 		= data[ord(KISS.ADDR_E_SLOTTIME)]
+			self.config_preamble 		= data[ord(KISS.ADDR_E_PREAMBLE)]
+			self.config_tail 			= data[ord(KISS.ADDR_E_TAIL)]
+			self.config_led_intensity 	= data[ord(KISS.ADDR_E_LED_INTENSITY)]
+			self.config_output_gain 	= data[ord(KISS.ADDR_E_OUTPUT_GAIN)]
+			self.config_input_gain 		= data[ord(KISS.ADDR_E_INPUT_GAIN)]
+			self.config_passall 		= data[ord(KISS.ADDR_E_PASSALL)]
+			self.config_log_packets 	= data[ord(KISS.ADDR_E_LOG_PACKETS)]
+			self.config_crypto_lock 	= data[ord(KISS.ADDR_E_CRYPTO_LOCK)]
+			self.config_gps_mode 		= data[ord(KISS.ADDR_E_GPS_MODE)]
+			self.config_bluetooth_mode 	= data[ord(KISS.ADDR_E_BLUETOOTH_MODE)]
+			self.config_serial_baudrate = data[ord(KISS.ADDR_E_SERIAL_BAUDRATE)]
 			self.config_valid = True
 		else:
 			print("Invalid checksum")
@@ -453,13 +455,13 @@ class KISSInterface(Interface):
 			in_frame = False
 			escape = False
 			command = KISS.CMD_UNKNOWN
-			data_buffer = b""
-			config_buffer = b""
+			data_buffer = ""
+			config_buffer = ""
 			last_read_ms = int(time.time()*1000)
 
 			while self.serial.is_open:
 				if self.serial.in_waiting:
-					byte = ord(self.serial.read(1))
+					byte = self.serial.read(1)
 					last_read_ms = int(time.time()*1000)
 
 					if (in_frame and byte == KISS.FEND and command == KISS.CMD_DATA):
@@ -471,8 +473,8 @@ class KISSInterface(Interface):
 					elif (byte == KISS.FEND):
 						in_frame = True
 						command = KISS.CMD_UNKNOWN
-						data_buffer = b""
-						config_buffer = b""
+						data_buffer = ""
+						config_buffer = ""
 					elif (in_frame and len(data_buffer) < 611):
 						if (len(data_buffer) == 0 and command == KISS.CMD_UNKNOWN):
 							command = byte
@@ -486,7 +488,7 @@ class KISSInterface(Interface):
 									if (byte == KISS.TFESC):
 										byte = KISS.FESC
 									escape = False
-								data_buffer = data_buffer+bytes([byte])
+								data_buffer = data_buffer+byte
 						elif (command == KISS.CMD_PRINT_CONFIG):
 							if (byte == KISS.FESC):
 								escape = True
@@ -497,7 +499,7 @@ class KISSInterface(Interface):
 									if (byte == KISS.TFESC):
 										byte = KISS.FESC
 									escape = False
-								config_buffer = config_buffer+bytes([byte])
+								config_buffer = config_buffer+byte
 						elif (command == KISS.CMD_AUDIO_PEAK):
 							self.displayPeak(byte)
 						elif (command == KISS.CMD_MODE):
@@ -505,7 +507,7 @@ class KISSInterface(Interface):
 				else:
 					time_since_last = int(time.time()*1000) - last_read_ms
 					if len(data_buffer) > 0 and time_since_last > self.timeout:
-			 			data_buffer = b""
+			 			data_buffer = ""
 			 			in_frame = False
 			 			command = KISS.CMD_UNKNOWN
 			 			escape = False
@@ -563,24 +565,24 @@ class appRequestHandler(BaseHTTPRequestHandler):
 			request.json_headers()
 			if kiss_interface and kiss_interface.config_valid:
 				configData = {
-					"preamble": kiss_interface.config_preamble,
-					"tail": kiss_interface.config_tail,
-					"p": kiss_interface.config_p,
-					"slottime": kiss_interface.config_slottime,
-					"led_intensity": kiss_interface.config_led_intensity,
-					"output_gain": kiss_interface.config_output_gain,
-					"input_gain": kiss_interface.config_input_gain,
-					"passall": kiss_interface.config_passall,
-					"log_packets": kiss_interface.config_log_packets,
-					"crypto_lock": kiss_interface.config_crypto_lock,
-					"gps_mode": kiss_interface.config_gps_mode,
-					"bluetooth_mode": kiss_interface.config_bluetooth_mode,
-					"serial_baudrate": kiss_interface.config_serial_baudrate,
-					"modem_mode": kiss_interface.modem_mode
+					"preamble": ord(kiss_interface.config_preamble),
+					"tail": ord(kiss_interface.config_tail),
+					"p": ord(kiss_interface.config_p),
+					"slottime": ord(kiss_interface.config_slottime),
+					"led_intensity": ord(kiss_interface.config_led_intensity),
+					"output_gain": ord(kiss_interface.config_output_gain),
+					"input_gain": ord(kiss_interface.config_input_gain),
+					"passall": ord(kiss_interface.config_passall),
+					"log_packets": ord(kiss_interface.config_log_packets),
+					"crypto_lock": ord(kiss_interface.config_crypto_lock),
+					"gps_mode": ord(kiss_interface.config_gps_mode),
+					"bluetooth_mode": ord(kiss_interface.config_bluetooth_mode),
+					"serial_baudrate": ord(kiss_interface.config_serial_baudrate),
+					"modem_mode": ord(kiss_interface.modem_mode)
 				}
 				request.wfile.write(json.dumps({"response":"ok", "config":configData}).encode("utf-8"))
 			else:
-				request.wfile.write(json.dumps({"response":"failed"}).encode("utf-8"))
+				request.wfile.write(json.dumps({"response":"fail"}).encode("utf-8"))
 
 		if (request.path == "/getpeak"):
 			request.json_headers()
@@ -781,6 +783,7 @@ def open_device(port, baud):
 		kiss_interface.retrieveConfig()
 		return True
 	except Exception as e:
+		#raise e
 		return False
 
 def close_device():
@@ -908,9 +911,7 @@ def install_entropy_source(path):
 
 
 def get_port():
-	# TODO: Change
-	#return random.randrange(40000,49999,1)
-	return 48031
+	return random.randrange(40000,49999,1)
 
 def start_server():
 	retries = 0
@@ -923,7 +924,7 @@ def start_server():
 			server_address = ("127.0.0.1", port)
 			httpd = ThreadedHTTPServer(server_address, appRequestHandler)
 			threading.Thread(target=httpd.serve_forever).start()
-			print(("Server running on port "+str(port)))
+			print("Server running on port "+str(port))
 			retval = webview.create_window('OpenModem Configuration', 'http://localhost:'+str(port)+'/', width=575, height=600)
 			if retval == None:
 				os._exit(0)
