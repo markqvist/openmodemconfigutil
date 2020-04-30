@@ -846,8 +846,8 @@ def generate_key():
 	if volume_ok:
 		RNS.log("Generating new AES-128 key in "+volume_path+"...")
 		try:
-			file = open(volume_path+"aes128.key", "w")
-			file.write(os.urandom(128/8))
+			file = open(volume_path+"aes128.key", "wb")
+			file.write(os.urandom(128//8))
 			file.close()
 
 			return True
@@ -898,7 +898,7 @@ def install_entropy_source(path):
 		megabytes_to_write = 32
 		bytes_per_block = 1024
 		bytes_written = 0
-		file = open(path+"entropy.source", "a")
+		file = open(path+"entropy.source", "wb")
 		while bytes_written < megabytes_to_write*1024*1024:
 			file.write(os.urandom(bytes_per_block))
 			bytes_written = bytes_written + bytes_per_block
