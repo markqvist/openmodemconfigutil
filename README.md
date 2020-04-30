@@ -3,7 +3,7 @@ OpenModem Configuration Utility
 
 This is the graphical configuration utility for [OpenModem](https://github.com/markqvist/OpenModem).
 
-To download packaged builds, see the [OpenModem page at unsigned.io](https://unsigned.io/openmodem). Packages are supplied for MacOS, Windows.
+To download packaged builds, see the [OpenModem page at unsigned.io](https://unsigned.io/openmodem). Packages are supplied for MacOS and Windows.
 
 For Linux and Raspberry Pi the recommended method is to install from this repository, using the following instructions: 
 
