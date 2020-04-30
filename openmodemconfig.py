@@ -861,7 +861,7 @@ def load_key(keydata):
 		RNS.log("Loading supplied key onto "+volume_path+"...")
 		try:
 			key = base64.b64decode(keydata)
-			file = open(volume_path+"aes128.key", "w")
+			file = open(volume_path+"aes128.key", "wb")
 			file.write(key)
 			file.close()
 			return True

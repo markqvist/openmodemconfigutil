@@ -1,10 +1,6 @@
 import os
 from setuptools import setup
 
-def tree(src):
-    return [(root, map(lambda f: os.path.join(root, f), files))
-        for (root, dirs, files) in os.walk(os.path.normpath(src))]
-
 APP = ['openmodemconfig.py']
 DATA_FILES = []
 OPTIONS = {'argv_emulation': False,
