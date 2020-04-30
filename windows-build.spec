@@ -3,12 +3,13 @@
 block_cipher = None
 
 data_list = []
-dscan = Tree('.public', prefix='public')
-for tupl in dscan
+dscan = Tree('.\\public', prefix='public\\')
+for tupl in dscan:
     s = tupl[1]
-    s = s[0s.rfind()]
+    s = s[0:s.rfind('\\')]
     nt = (tupl[0], s)
     data_list.append(nt)
+    print(nt)
 
 a = Analysis(['openmodemconfig.py'],
              pathex=['.'],
