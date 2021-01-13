@@ -82,6 +82,7 @@ class KISS():
 	CMD_SERIAL_BAUDRATE			= 0x10
 	CMD_EN_DIAGS    			= 0x13
 	CMD_MODE 		   			= 0x14
+	CMD_INVERT_SD_DETECT 		= 0x15
 	CMD_PRINT_CONFIG			= 0xF0
 	CMD_LED_INTENSITY			= 0x08
 	CMD_RETURN					= 0xFF
@@ -102,8 +103,9 @@ class KISS():
 	ADDR_E_GPS_MODE				= 0x0D
 	ADDR_E_BLUETOOTH_MODE		= 0x0E
 	ADDR_E_SERIAL_BAUDRATE		= 0x0F
-	ADDR_E_CHECKSUM				= 0x10
-	ADDR_E_END					= 0x20
+	ADDR_E_INVERT_SDDETECT		= 0x10
+	ADDR_E_CHECKSUM				= 0x11
+	ADDR_E_END					= 0x21
 
 	CONFIG_GPS_OFF				= 0x00
 	CONFIG_GPS_AUTODETECT		= 0x01
@@ -172,6 +174,7 @@ class KISSInterface(Interface):
 		self.config_gps_mode		= None
 		self.config_bluetooth_mode	= None
 		self.config_serial_baudrate = None
+		self.config_invert_sddetect	= None
 		self.config_valid			= False
 
 
@@ -384,6 +387,18 @@ class KISSInterface(Interface):
 		if written != len(kiss_command):
 			raise IOError("Could not configure KISS interface logtosd to "+str(gain))
 
+	def setInvertSdDetect(self, val):
+		if val < 0:
+			val = 0
+		if val > 1:
+			val = 1
+
+		command = KISS.escape(bytes([val]))
+		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_INVERT_SD_DETECT])+command+bytes([KISS.FEND])
+		written = self.serial.write(kiss_command)
+		if written != len(kiss_command):
+			raise IOError("Could not configure KISS interface invert_sddetect to "+str(gain))
+
 
 	def saveConfig(self):
 		kiss_command = bytes([KISS.FEND])+bytes([KISS.CMD_SAVE_CONFIG])+bytes([0x01])+bytes([KISS.FEND])
@@ -419,10 +434,10 @@ class KISSInterface(Interface):
 	def processConfig(self, data):
 		RNS.log("Processing config")
 		md5 = hashlib.md5()
-		md5.update(data[:16])
+		md5.update(data[:17])
 		md5_result = md5.digest()
 
-		if md5_result == data[16:]:
+		if md5_result == data[17:]:
 			RNS.log("Config checksum match")
 			self.config_p				= data[KISS.ADDR_E_P]
 			self.config_slottime 		= data[KISS.ADDR_E_SLOTTIME]
@@ -437,6 +452,7 @@ class KISSInterface(Interface):
 			self.config_gps_mode 		= data[KISS.ADDR_E_GPS_MODE]
 			self.config_bluetooth_mode 	= data[KISS.ADDR_E_BLUETOOTH_MODE]
 			self.config_serial_baudrate = data[KISS.ADDR_E_SERIAL_BAUDRATE]
+			self.config_invert_sddetect	= data[KISS.ADDR_E_INVERT_SDDETECT]
 			self.config_valid = True
 		else:
 			print("Invalid checksum")
@@ -579,7 +595,8 @@ class appRequestHandler(BaseHTTPRequestHandler):
 					"gps_mode": kiss_interface.config_gps_mode,
 					"bluetooth_mode": kiss_interface.config_bluetooth_mode,
 					"serial_baudrate": kiss_interface.config_serial_baudrate,
-					"modem_mode": kiss_interface.modem_mode
+					"modem_mode": kiss_interface.modem_mode,
+					"invert_sddetect": kiss_interface.config_invert_sddetect
 				}
 				request.wfile.write(json.dumps({"response":"ok", "config":configData}).encode("utf-8"))
 			else:
@@ -682,6 +699,13 @@ class appRequestHandler(BaseHTTPRequestHandler):
 			query = parse_qs(urlparse(request.path).query)
 			q_val = int(query["val"][0])
 			kiss_interface.setLogToSD(q_val)
+			request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
+
+		if (request.path.startswith("/setinvertsddetect")):
+			request.json_headers()
+			query = parse_qs(urlparse(request.path).query)
+			q_val = int(query["val"][0])
+			kiss_interface.setInvertSdDetect(q_val)
 			request.wfile.write(json.dumps({"response":"ok"}).encode("utf-8"))
 
 		if (request.path.startswith("/setgpsmode")):

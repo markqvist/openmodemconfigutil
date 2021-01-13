@@ -280,6 +280,16 @@ function request_logtosd_change() {
 	}
 }
 
+function request_invertsddetect_change() {
+	if (document.connection_state) {
+		var val = jQuery("#c_invertsddetect").checkbox("is checked");
+		val = val ? 1 : 0;
+		console.log("Setting invertsddetect to:");
+		console.log(val);
+		jQuery.getJSON("/setinvertsddetect?val="+val, function(data) {	});
+	}
+}
+
 function request_aes_change() {
 	if (volume_ok) {
 		var val = jQuery("#c_aes128").checkbox("is checked");
@@ -367,6 +377,11 @@ function update_fields_from_config(configdata) {
 		} else {
 			jQuery("#c_logtosd").checkbox("uncheck");
 		}
+		if (parseInt(configdata["invert_sddetect"]) == 1) {
+			jQuery("#c_invertsddetect").checkbox("check");
+		} else {
+			jQuery("#c_invertsddetect").checkbox("uncheck");
+		}
 		if (parseInt(configdata["modem_mode"]) == 1) { jQuery("#s_modem_mode").dropdown("set selected", "AFSK300");}
 		if (parseInt(configdata["modem_mode"]) == 2) { jQuery("#s_modem_mode").dropdown("set selected", "AFSK1200");}
 		if (parseInt(configdata["modem_mode"]) == 3) { jQuery("#s_modem_mode").dropdown("set selected", "AFSK2400");}
@@ -398,6 +413,7 @@ function init_elements() {
 	jQuery("#c_passall").checkbox("setting", "onChange", function() { request_passall_change(); });
 	jQuery("#c_logtosd").checkbox("setting", "onChange", function() { request_logtosd_change(); });
 	jQuery("#c_aes128").checkbox("setting", "onChange", function() { request_aes_change(); });
+	jQuery("#c_invertsddetect").checkbox("setting", "onChange", function() { request_invertsddetect_change(); });
 
 	jQuery('#p-selection').range({
 		min: 0,
